@@ -45,6 +45,7 @@ def create_colors_info(team1_name, team1_p_color, team1_gk_color, team2_name, te
     return colors_dic, color_list_lab
 
 def generate_file_name():
+    os.makedirs('./outputs/', exist_ok=True)
     list_video_files = os.listdir('./outputs/')
     idx = 0
     while True:
@@ -54,7 +55,7 @@ def generate_file_name():
             break
     return output_file_name
 
-def detect(cap, stframe, output_file_name, save_output, model_players, model_keypoints,
+def detect(cap, stframe, output_file_name, save_processed_separately, save_tactical_separately, model_players, model_keypoints,
             hyper_params, ball_track_hyperparams, plot_hyperparams, num_pal_colors, colors_dic, color_list_lab,
             enable_resize, output_width, output_height):
 
@@ -73,15 +74,19 @@ def detect(cap, stframe, output_file_name, save_output, model_players, model_key
 
     nbr_team_colors = len(list(colors_dic.values())[0])
 
-    if save_output and (output_file_name is None or len(str(output_file_name)) == 0):
+    if (save_processed_separately or save_tactical_separately) and (output_file_name is None or len(str(output_file_name)) == 0):
         output_file_name = generate_file_name()
+
+    # Ensure outputs directory exists
+    os.makedirs('./outputs/', exist_ok=True)
 
     # Read tactical map image
     tac_map = cv2.imread('../tactical map.jpg')
     map_height, map_width, _ = tac_map.shape # Correctly get map dimensions
-    
-    # Create output video writer
-    output = None # Initialize output writer to None
+
+    # Create output video writers
+    processed_output = None # Initialize processed video writer to None
+    tactical_output = None # Initialize tactical video writer to None
     
     # Create progress bar
     tot_nbr_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -356,8 +361,29 @@ def detect(cap, stframe, output_file_name, save_output, model_players, model_key
                 points = np.hstack(ball_track_history['dst']).astype(np.int32).reshape((-1, 1, 2))
                 tac_map_copy = cv2.polylines(tac_map_copy, [points], isClosed=False, color=(0, 0, 100), thickness=2)
 
-            
-            
+            # Save separate videos if enabled
+            if save_processed_separately:
+                # Resize frame if too large for better compatibility
+                max_width, max_height = 1280, 720
+                if annotated_frame.shape[1] > max_width or annotated_frame.shape[0] > max_height:
+                    scale = min(max_width / annotated_frame.shape[1], max_height / annotated_frame.shape[0])
+                    new_width = int(annotated_frame.shape[1] * scale)
+                    new_height = int(annotated_frame.shape[0] * scale)
+                    annotated_frame_resized = cv2.resize(annotated_frame, (new_width, new_height))
+                else:
+                    annotated_frame_resized = annotated_frame
+
+                if processed_output is None: # Initialize VideoWriter on the first frame
+                    height, width, _ = annotated_frame_resized.shape
+                    processed_output = cv2.VideoWriter(f'./outputs/{output_file_name}_processed.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+                processed_output.write(annotated_frame_resized)
+
+            if save_tactical_separately:
+                if tactical_output is None: # Initialize VideoWriter on the first frame
+                    tac_height, tac_width, _ = tac_map_copy.shape
+                    tactical_output = cv2.VideoWriter(f'./outputs/{output_file_name}_tactical.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (tac_width, tac_height))
+                tactical_output.write(tac_map_copy)
+
             # Combine annotated frame and tactical map in one image with colored border separation
             border_color = [255,255,255]                                                                        # Set border color (BGR)
             annotated_frame=cv2.copyMakeBorder(annotated_frame, 40, 10, 10, 10,                                 # Add borders to annotated frame
@@ -381,17 +407,17 @@ def detect(cap, stframe, output_file_name, save_output, model_players, model_key
             # Display the annotated frame
             stframe.image(final_img, channels="BGR")
             #cv2.imshow("YOLOv8 Inference", frame)
-            if save_output:
-                if output is None: # Initialize VideoWriter on the first frame
-                    final_img_height, final_img_width, _ = final_img.shape
-                    output = cv2.VideoWriter(f'./outputs/{output_file_name}.mp4', cv2.VideoWriter_fourcc(*'XVID'), fps, (final_img_width, final_img_height))
-                output.write(final_img)
 
 
-    # Release output video writer if saving
-    if save_output and output is not None:
-        output.release()
+    # Release output video writers if saving
+    if save_processed_separately and processed_output is not None:
+        processed_output.release()
+
+    if save_tactical_separately and tactical_output is not None:
+        tactical_output.release()
 
     # Remove progress bar and return
     st_prog_bar.empty()
-    return True, output_file_name if save_output else None
+    processed_name = f'{output_file_name}_processed.mp4' if save_processed_separately else None
+    tactical_name = f'{output_file_name}_tactical.mp4' if save_tactical_separately else None
+    return True, processed_name, tactical_name

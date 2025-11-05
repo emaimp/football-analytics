@@ -1,8 +1,8 @@
+import os
 import cv2
 import tempfile
 import numpy as np
 import streamlit as st
-import os
 from ultralytics import YOLO
 from detection import create_colors_info, detect
 from streamlit_image_coordinates import streamlit_image_coordinates
@@ -178,8 +178,9 @@ def main():
             num_pal_colors = st.slider(label="Number of palette colors", min_value=1, max_value=5, step=1, value=3,
                                     help="How many colors to extract form detected players bounding-boxes? It is used for team prediction.")
             st.markdown("---")
-            save_output = st.checkbox(label='Save output', value=False)
-            if save_output:
+            save_processed_separately = st.checkbox(label='Guardar video procesado por separado', value=False)
+            save_tactical_separately = st.checkbox(label='Guardar mapa táctico por separado', value=False)
+            if save_processed_separately or save_tactical_separately:
                 output_file_name = st.text_input(label='File Name (Optional)', placeholder='Enter output video file name.')
             else:
                 output_file_name = None
@@ -238,13 +239,14 @@ def main():
 
         st.markdown('---')
         st.subheader("Reproducir Video Procesado Existente")
-        video_files = [f for f in os.listdir('outputs/') if f.endswith('.mp4')]
-        if video_files:
-            selected_video = st.selectbox("Seleccionar video procesado", video_files)
-            if selected_video:
-                with open(f'outputs/{selected_video}', 'rb') as f:
-                    video_bytes = f.read()
-                st.video(video_bytes)
+        if os.path.exists('outputs/'):
+            video_files = [f for f in os.listdir('outputs/') if f.endswith('.mp4')]
+            if video_files:
+                selected_video = st.selectbox("Seleccionar video procesado", video_files)
+                if selected_video:
+                    st.video(f'outputs/{selected_video}')
+            else:
+                st.write("No hay videos procesados guardados.")
         else:
             st.write("No hay videos procesados guardados.")
 
@@ -254,7 +256,7 @@ def main():
 
     if start_detection and not stop_detection:
         st.toast(f'Detection Started!')
-        status, processed_video_name = detect(cap, stframe, output_file_name, save_output, model_players, model_keypoints,
+        status, processed_video_name, tactical_video_name = detect(cap, stframe, output_file_name, save_processed_separately, save_tactical_separately, model_players, model_keypoints,
                          detection_hyper_params, ball_track_hyperparams, plot_hyperparams,
                            num_pal_colors, colors_dic, color_list_lab, enable_resize, output_width, output_height)
     else:
@@ -267,9 +269,10 @@ def main():
         st.toast(f'Detection Completed!')
         if processed_video_name:
             st.header("Video Procesado")
-            with open(f'outputs/{processed_video_name}.mp4', 'rb') as f:
-                video_bytes = f.read()
-            st.video(video_bytes)
+            st.video(f'outputs/{processed_video_name}')
+        if tactical_video_name:
+            st.header("Mapa Táctico")
+            st.video(f'outputs/{tactical_video_name}')
         cap.release()
 
     with tab4:
@@ -287,9 +290,7 @@ def main():
                 selected_local_video = st.selectbox("Seleccionar video local", video_files_in_dir)
                 if selected_local_video:
                     video_path = os.path.join(video_dir, selected_local_video)
-                    with open(video_path, 'rb') as f:
-                        local_video_bytes = f.read()
-                    st.video(local_video_bytes)
+                    st.video(video_path)
             else:
                 st.write("No se encontraron videos en este directorio.")
         else:
