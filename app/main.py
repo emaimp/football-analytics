@@ -1,96 +1,117 @@
-import cv2
-import tempfile
 import streamlit as st
 from ultralytics import YOLO
-from detection import detect
-from views.use import render_how_to_use_tab
-from views.colors import render_team_colors_tab
-from views.videos import render_local_video_player_tab
-from views.parameters import render_hyperparameters_tab
 
-def main():
-    st.set_page_config(page_title="Aplicación Web Potenciada por IA para Análisis Táctico de Fútbol", layout="wide", initial_sidebar_state="expanded")
-    st.title("Computer Vision - Football")
-    st.subheader(":red[Solo funciona con videos en vista táctica]")
+# Iniciar los roles
+if "role" not in st.session_state:
+    st.session_state.role = None
 
-    # Configuración de la Barra Lateral
-    st.sidebar.subheader("Video para el análisis")
-    input_vide_file = st.sidebar.file_uploader('Carga de video.', type=['mp4','mov', 'avi', 'm4v', 'asf'])
+ROLE = ["admin"]
+ROLE_PASSWORD = st.secrets["pass"]
 
-    # Configuración de la Página - Las pestañas siempre se muestran
-    tab1, tab2, tab3, tab4 = st.tabs(["Inicio", "Colores de Equipo", "Parámetros del Modelo", "Reproductor de Video"])
+#
+# Hacer que el set_page_config no se ejecute
+#
+if "page_config" not in st.session_state:
+    st.set_page_config(
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+    st.session_state.page_config = True
 
-    with tab1:
-        render_how_to_use_tab()
+#
+# Pagina login de roles
+#
+def login():
+    # Menu
+    login_1, login_2, login_3 = st.columns(3)
+    with login_2:
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("") # Espacio
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        
+        # Título de la empresa
+        title_1, title_2, title_3 = st.columns([5, 91, 4])
+        with title_2:
+            st.write("") # Espacio
+            st.markdown('<h4 style="text-align:center; font-size: 2em;">⚽ Fútbol Computer Vision</h4>', unsafe_allow_html=True)
+            st.write("") # Espacio
+        
+        # Formulario para manejar el botón enviar
+        with st.form(key="login_form"):
+            # Selección del rol
+            role = st.selectbox("Elige un usuario", ROLE)
+            
+            st.write("") # Espacio
+            
+            # Entrada para la contraseña
+            password = st.text_input(
+                "Ingresa la contraseña", type="password", max_chars=10
+            )
+            st.write("") # Espacio
+            
+            # Botón de ingreso
+            submit_button = st.form_submit_button("Entrar", type="primary", width="stretch")
+            
+            # Verificar si la contraseña no esta vacía
+            if password != "":
+                # Verificamos si el botón fue presionado o el formulario se envió
+                if submit_button:
+                    # Verificar la contraseña
+                    if password == ROLE_PASSWORD.get(role, None):
+                        st.session_state.role = role
+                        st.success(f"Acceso concedido.")
+                        st.rerun() # Reinicia la aplicación para reflejar el acceso
+                    else:
+                        st.error("Contraseña incorrecta.")
+        
+        badge_1, badge_2, badge_3 = st.columns([40, 30, 30])
+        with badge_2:
+            """
+            [![GitHub](
+                https://img.shields.io/badge/GitHub-black?style=for-the-badge&logo=github
+                )](https://github.com/emaimp)
+            """
 
-    if not input_vide_file:
-        st.sidebar.text('Por favor, seleccione un archivo.')
-        with tab2:
-            st.info("💡 Seleccione un video para configurar los colores de equipo.")
-        with tab3:
-            st.info("⚙️ Seleccione un video para ajustar los parámetros de detección.")
-        with tab4:
-            st.info("🎥 Seleccione un video para ver los resultados procesados.")
-        return
+# Pagina de logout
+def logout():
+    st.session_state.role = None
+    st.rerun()
+role = st.session_state.role
 
-    tempf = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False)
-    tempf.write(input_vide_file.read())
-    video_display = open(tempf.name, 'rb')
-    video_bytes = video_display.read()
+#
+# Paginas
+#
+pages = {
+    "Home": [
+        st.Page(logout, title="Salir", icon=":material/logout:"),
+        st.Page("views/💻_Pagina_Inicio.py", title="Inicio", default=(role == "admin")),
+    ],
+    "Archivos": [
+        st.Page("views/💾_Uploader_File.py", title="Carga de Video"),
+        st.Page("views/📽️_Reproductor.py", title="Reproductor"),
+    ],
+    "Configuración": [
+        st.Page("views/🎨_Colores.py", title="Colores"),
+        st.Page("views/⚙️_Parámetros.py", title="Parámetros"),
+    ],
+}
 
-    st.sidebar.text('Video de entrada')
-    st.sidebar.video(video_bytes)
+# Condicionales para la navegación
+if st.session_state.role == "admin":
 
-    # Cargar el modelo de detección de jugadores YOLOv8
-    model_players = YOLO("../models/Yolo8L Players/weights/best.pt")
-    # Cargar el modelo de detección de puntos clave del campo YOLOv8
-    model_keypoints = YOLO("../models/Yolo8M Field Keypoints/weights/best.pt")
+    # Cargar modelos si no están en session_state
+    if "model_players" not in st.session_state:
+        st.session_state.model_players = YOLO("../models/Yolo8L Players/weights/best.pt")
+        st.session_state.model_keypoints = YOLO("../models/Yolo8M Field Keypoints/weights/best.pt")
 
-    # Información predeterminada del equipo para videos subidos
-    selected_team_info = {
-        "team1_name": "",
-        "team2_name": "",
-        "team1_p_color": '#FFFFFF',
-        "team1_gk_color": '#000000',
-        "team2_p_color": '#FFFFFF',
-        "team2_gk_color": '#000000',
-    }
+    pg = st.navigation(pages)
+else:
+    pg = st.navigation([st.Page(login)])
 
-    st.sidebar.markdown('---')
-    st.sidebar.subheader("Nombres de Equipos")
-    team1_name = st.sidebar.text_input(label='Nombre del Primer Equipo', value=selected_team_info["team1_name"])
-    team2_name = st.sidebar.text_input(label='Nombre del Segundo Equipo', value=selected_team_info["team2_name"])
-    st.sidebar.markdown('---')
-
-    with tab2:
-        colors_dic, color_list_lab = render_team_colors_tab(tempf, model_players, team1_name, team2_name, selected_team_info)
-
-    with tab3:
-        (detection_hyper_params, num_pal_colors, save_processed_separately, save_tactical_separately,
-         output_file_name, enable_resize, output_width, output_height, ball_track_hyperparams, plot_hyperparams,
-         start_detection, stop_detection) = render_hyperparameters_tab(team1_name, team2_name)
-
-    stframe = st.empty()
-    cap = cv2.VideoCapture(tempf.name)
-
-    if start_detection and not stop_detection:
-        st.toast(f'¡Detección Iniciada!')
-        save_combined = False  # No longer an option, always False
-        detect(cap, stframe, output_file_name, save_processed_separately, save_tactical_separately, save_combined, model_players, model_keypoints,
-               detection_hyper_params, ball_track_hyperparams, plot_hyperparams,
-               num_pal_colors, colors_dic, color_list_lab, enable_resize, output_width, output_height)
-    else:
-        try:
-            # Release the video capture object and close the display window
-            cap.release()
-        except:
-            pass
-
-    with tab4:
-        render_local_video_player_tab()
-
-if __name__=='__main__':
-    try:
-        main()
-    except SystemExit:
-        pass
+pg.run() # Inicia la aplicación
