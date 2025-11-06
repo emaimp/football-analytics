@@ -1,5 +1,6 @@
 import os
 import re
+import base64
 import streamlit as st
 
 def render_local_video_player_tab():
@@ -22,20 +23,18 @@ def render_local_video_player_tab():
         for i, video_file in enumerate(uploaded_videos):
             col_idx = i % 2
             with cols[col_idx]:
-                st.markdown(f"**🎥 {video_file.name}**")
-                st.caption(f"Tamaño: {video_file.size/1024/1024:.1f} MB")
-                st.video(video_file)
-                # Opción para descargar el video subido
-                st.download_button(
-                    label="📥 Descargar",
-                    data=video_file.getvalue(),
-                    file_name=video_file.name,
-                    mime=video_file.type,
-                    key=f"download_{i}"
-                )
-                # Espacio entre videos
-                if i < len(uploaded_videos) - 1:
-                    st.markdown("---")
+                st.markdown(f'<p style="text-align: center;">{video_file.name}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="text-align: center;">Tamaño: {video_file.size/1024/1024:.1f} MB</p>', unsafe_allow_html=True)
+                video_bytes = video_file.getvalue()
+                video_b64 = base64.b64encode(video_bytes).decode()
+
+                # Fijar anchos: 750 para el primero, 250 para el segundo
+                fixed_width = 750 if i == 0 else 300
+                st.markdown(f'''
+                <video width="{fixed_width}" controls style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
+                    <source src="data:{video_file.type};base64,{video_b64}" type="{video_file.type}">
+                </video>
+                ''', unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -73,10 +72,24 @@ def render_local_video_player_tab():
                     col1, col2 = st.columns([3, 1])
                     with col1:
                         st.subheader("Video del Juego Procesado")
-                        st.video(processed_path)
+                        with open(processed_path, 'rb') as f:
+                            video_bytes = f.read()
+                        video_b64 = base64.b64encode(video_bytes).decode()
+                        st.markdown(f'''
+                        <video controls style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
+                            <source src="data:video/mp4;base64,{video_b64}" type="video/mp4">
+                        </video>
+                        ''', unsafe_allow_html=True)
                     with col2:
                         st.subheader("Mapa Táctico")
-                        st.video(tactical_path)
+                        with open(tactical_path, 'rb') as f:
+                            video_bytes = f.read()
+                        video_b64 = base64.b64encode(video_bytes).decode()
+                        st.markdown(f'''
+                        <video controls style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
+                            <source src="data:video/mp4;base64,{video_b64}" type="video/mp4">
+                        </video>
+                        ''', unsafe_allow_html=True)
                 else:
                     st.write("No se encontraron videos procesados y tácticos con números coincidentes.")
             else:
