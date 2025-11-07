@@ -47,7 +47,8 @@ def render_team_colors(tempf, model_players, team1_name, team2_name, selected_te
     with t1col1:
         cap_temp = cv2.VideoCapture(tempf.name)
         frame_count = int(cap_temp.get(cv2.CAP_PROP_FRAME_COUNT))
-        frame_nbr = st.slider(label="Seleccionar fotograma", min_value=1, max_value=frame_count, step=1, help="Seleccionar fotograma para elegir colores de equipo")
+        frame_nbr = st.slider(label="Seleccioná fotograma.", min_value=1, max_value=frame_count, step=1,
+                              help="Seleccioná un fotograma para elegir los colores del equipo.")
         cap_temp.set(cv2.CAP_PROP_POS_FRAMES, frame_nbr)
         success, frame = cap_temp.read()
         with st.spinner('Detectando jugadores en el fotograma seleccionado...'):
@@ -72,7 +73,7 @@ def render_team_colors(tempf, model_players, team1_name, team2_name, selected_te
             concat_det_imgs_row2 = cv2.hconcat(detections_imgs_grid[1])
             concat_det_imgs = cv2.vconcat([concat_det_imgs_row1,concat_det_imgs_row2])
 
-        st.write("Jugadores detectados")
+        st.write("Jugadores Detectados.")
 
         value = streamlit_image_coordinates(concat_det_imgs, key="numpy")
         #value_radio_dic = defaultdict(lambda: None)
@@ -80,13 +81,13 @@ def render_team_colors(tempf, model_players, team1_name, team2_name, selected_te
         st.markdown('---')
 
         radio_options =[f"Color P de {team1_name}", f"Color GK de {team1_name}", f"Color P de {team2_name}", f"Color GK de {team2_name}"]
-        active_color = st.radio(label="Seleccioná qué color de equipo elegir de la imagen", options=radio_options, horizontal=True,
-                                help="Elige el color del equipo que quieres seleccionar y haz clic en la imagen de arriba para elegir el color. Los colores se mostrarán en las cajas de abajo.")
+        active_color = st.radio(label="Seleccioná qué color de equipo elegir.", options=radio_options,
+                                help="Elige el color y haz clic en la imagen (los colores se mostrarán abajo).")
         if value is not None:
             picked_color = concat_det_imgs[value['y'], value['x'], :]
             st.session_state[f"{active_color}"] = '#%02x%02x%02x' % tuple(picked_color)
 
-        st.write("Las cajas de abajo se pueden usar para ajustar manualmente los colores seleccionados.")
+        st.write("Ajuste manual de colores.")
 
         cp1, cp2, cp3, cp4 = st.columns([1,1,1,1])
         with cp1:

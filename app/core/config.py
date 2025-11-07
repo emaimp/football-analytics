@@ -13,18 +13,18 @@ def get_labels_dics():
         labels_dic: Diccionario que mapea etiquetas numéricas a alfabéticas para jugadores/objetos
     """
     # Obtener diccionario de posiciones de keypoints del mapa táctico
-    json_path = os.path.join(os.path.dirname(__file__), "../../pitch map labels position.json")
+    json_path = os.path.join(os.path.dirname(__file__), "../config/map_labels_position.json")
     with open(json_path, 'r') as f:
         keypoints_map_pos = json.load(f)
 
     # Obtener mapeo numérico a alfabético de keypoints del campo de fútbol
-    yaml_path = os.path.join(os.path.dirname(__file__), "../../config pitch dataset.yaml")
+    yaml_path = os.path.join(os.path.dirname(__file__), "../config/pitch_dataset.yaml")
     with open(yaml_path, 'r') as file:
         classes_names_dic = yaml.safe_load(file)
     classes_names_dic = classes_names_dic['names']
 
     # Obtener mapeo numérico a alfabético de keypoints del campo de fútbol
-    yaml_path = os.path.join(os.path.dirname(__file__), "../../config players dataset.yaml")
+    yaml_path = os.path.join(os.path.dirname(__file__), "../config/players_dataset.yaml")
     with open(yaml_path, 'r') as file:
         labels_dic = yaml.safe_load(file)
     labels_dic = labels_dic['names']

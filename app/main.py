@@ -107,8 +107,10 @@ if st.session_state.role == "admin":
 
     # Cargar modelos si no están en session_state
     if "model_players" not in st.session_state:
-        st.session_state.model_players = YOLO("../models/Yolo8L Players/weights/best.pt")
-        st.session_state.model_keypoints = YOLO("../models/Yolo8M Field Keypoints/weights/best.pt")
+        players_path = "app/models/Yolo8L_Players/best.pt"
+        keypoints_path = "app/models/Yolo8M_Keypoints/best.pt"
+        st.session_state.model_players = YOLO(players_path)
+        st.session_state.model_keypoints = YOLO(keypoints_path)
 
     pg = st.navigation(pages)
 else:
