@@ -67,7 +67,7 @@ def annotate_frame(frame, bboxes_p, labels_p, confs_p, players_teams_list, color
 
     return annotated_frame
 
-def annotate_tactical_map(tac_map_copy, pred_dst_pts, detected_ball_dst_pos, players_teams_list, colors_dic):
+def annotate_tactical_map(tac_map_copy, pred_dst_pts, detected_ball_dst_pos, players_teams_list, colors_dic, player_ids=None):
     """
     Anota el mapa táctico con posiciones de jugadores y balón.
     Args:
@@ -76,6 +76,7 @@ def annotate_tactical_map(tac_map_copy, pred_dst_pts, detected_ball_dst_pos, pla
         detected_ball_dst_pos: Posición del balón en el mapa táctico
         players_teams_list: Índices de equipos predichos
         colors_dic: Diccionario de colores de equipos
+        player_ids: Lista de IDs de jugadores (opcional)
     Returns:
         annotated_tactical_map: Mapa táctico con anotaciones
     """
@@ -89,9 +90,14 @@ def annotate_tactical_map(tac_map_copy, pred_dst_pts, detected_ball_dst_pos, pla
             color_rgb = colors_dic[team_name][0]
             color_bgr = color_rgb[::-1]
             annotated_tactical_map = cv2.circle(annotated_tactical_map, (int(pt[0]), int(pt[1])),
-                                        radius=5, color=color_bgr, thickness=-1)
+                                        radius=10, color=color_bgr, thickness=-1)
             annotated_tactical_map = cv2.circle(annotated_tactical_map, (int(pt[0]), int(pt[1])),
-                                        radius=5, color=(0, 0, 0), thickness=1)
+                                        radius=10, color=(0, 0, 0), thickness=1)
+            # Agregar ID del jugador si está disponible
+            if player_ids is not None and j < len(player_ids):
+                annotated_tactical_map = cv2.putText(annotated_tactical_map, str(player_ids[j]),
+                            (int(pt[0]) + 10, int(pt[1]) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (0, 0, 0), 2)
 
     # Anotar posición del balón
     if detected_ball_dst_pos is not None:

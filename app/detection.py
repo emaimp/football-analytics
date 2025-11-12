@@ -10,7 +10,7 @@ Función principal para detectar y procesar frames de video de fútbol.
 Realiza detección de objetos, transformación de coordenadas, predicción de equipos y anotaciones.
 """
 def detect(cap, stframe, output_file_name, save_processed_separately, save_tactical_separately, save_combined, model_players, model_keypoints,
-            hyper_params, ball_track_hyperparams, plot_hyperparams, num_pal_colors, colors_dic, color_list_lab,
+            hyper_params, ball_track_hyperparams, plot_hyperparams, num_pal_colors, colors_dic,
             enable_resize, output_width, output_height):
 
     # Extraer parámetros de visualización
@@ -29,8 +29,7 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
     ball_track_dist_thresh = ball_track_hyperparams[1] # Umbral de distancia para seguimiento
     max_track_length = ball_track_hyperparams[2] # Longitud máxima de seguimiento
 
-    # Número de colores por equipo
-    nbr_team_colors = len(list(colors_dic.values())[0])
+    # Número de colores (no usado ahora)
 
     # Generar nombre de archivo si es necesario
     if (save_processed_separately or save_tactical_separately or save_combined) and (output_file_name is None or len(str(output_file_name)) == 0):
@@ -40,7 +39,7 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
     os.makedirs('./outputs/', exist_ok=True)
 
     # Leer imagen del mapa táctico
-    tac_map = cv2.imread('app\\assets\\campo.png')
+    tac_map = cv2.imread('app\\assets\\campo_tactico.png')
     map_height, map_width, _ = tac_map.shape # Obtener correctamente las dimensiones del mapa
 
     # Crear escritores de video de salida
@@ -67,9 +66,30 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
     }
     nbr_frames_no_ball = 0 # Contador de frames sin balón
 
+    # Inicializar mapeo de ID de jugador a color y diccionario de colores
+    player_id_to_color_map = {}
+    player_colors_list = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'magenta', 'brown']
+    color_rgb_map = {
+        'red': (0, 0, 255),
+        'blue': (255, 0, 0),
+        'green': (0, 255, 0),
+        'yellow': (0, 255, 255),
+        'purple': (255, 0, 255),
+        'orange': (0, 165, 255),
+        'pink': (203, 192, 255),
+        'cyan': (255, 255, 0),
+        'magenta': (255, 0, 255),
+        'brown': (42, 42, 165)
+    }
+    # Inicializar colors_dic con los colores base para los equipos
+    # Esto asegura que colors_dic tenga una estructura consistente
+    colors_dic = {f"{i}": [color_rgb_map[player_colors_list[i]]] for i in range(len(player_colors_list))}
+    team_color_to_idx = {color: i for i, color in enumerate(player_colors_list)}
+
     # Inicializar variables de estado de homografía
     detected_labels_prev = None
     detected_labels_src_pts_prev = None
+    last_valid_homog = None # Variable para persistir la última homografía válida
 
     # Bucle sobre los frames del video de entrada
     for frame_nbr in range(1, tot_nbr_frames + 1):
@@ -92,20 +112,25 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
         if success:
             ### Detección de Objetos & Transformación de Coordenadas ###
 
-            # Ejecutar inferencia de YOLOv8 para jugadores en el frame
-            results_players = model_players(frame, conf=p_conf)
+            # Ejecutar tracking de YOLOv8 para jugadores en el frame
+            results_players = model_players.track(frame, conf=p_conf, persist=True, tracker="botsort.yaml")
             # Ejecutar inferencia de YOLOv8 para keypoints del campo en el frame
             results_keypoints = model_keypoints(frame, conf=k_conf)
 
             # Extraer información de detecciones
             bboxes_p = results_players[0].boxes.xyxy.cpu().numpy() # Bounding boxes de jugadores, árbitros y balón detectados (x,y,x,y)
             bboxes_p_c = results_players[0].boxes.xywh.cpu().numpy() # Bounding boxes de jugadores, árbitros y balón detectados (x,y,w,h)
-            labels_p = list(results_players[0].boxes.cls.cpu().numpy()) # Lista de etiquetas de jugadores, árbitros y balón detectados
+            labels_p = [int(label) for label in results_players[0].boxes.cls.cpu().numpy()] # Lista de etiquetas de jugadores, árbitros y balón detectados, convertidas a enteros
             confs_p = list(results_players[0].boxes.conf.cpu().numpy()) # Nivel de confianza de jugadores, árbitros y balón detectados
+            ids_p = results_players[0].boxes.id # IDs de tracking
+            if ids_p is not None:
+                ids_p = ids_p.cpu().numpy()
+            else:
+                ids_p = np.arange(len(bboxes_p))  # Fallback IDs
 
             bboxes_k = results_keypoints[0].boxes.xyxy.cpu().numpy() # Bounding boxes de keypoints del campo detectados (x,y,x,y)
             bboxes_k_c = results_keypoints[0].boxes.xywh.cpu().numpy() # Bounding boxes de keypoints del campo detectados (x,y,w,h)
-            labels_k = list(results_keypoints[0].boxes.cls.cpu().numpy()) # Lista de etiquetas de keypoints del campo detectados
+            labels_k = [int(label) for label in results_keypoints[0].boxes.cls.cpu().numpy()] # Lista de etiquetas de keypoints del campo detectados, convertidas a enteros
 
             # Convertir etiquetas numéricas detectadas a etiquetas alfabéticas
             detected_labels = [classes_names_dic[i] for i in labels_k]
@@ -122,12 +147,18 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
                 detected_labels_prev, detected_labels_src_pts_prev, k_d_tol, frame_nbr
             )
 
+            # Persistir la última homografía válida
+            if homog is not None:
+                last_valid_homog = homog
+            elif last_valid_homog is not None:
+                homog = last_valid_homog # Usar la última homografía válida si la actual es None
+
             # Inicializar posiciones predichas
             pred_dst_pts = None # Puntos destino de jugadores
             detected_ball_src_pos = None # Posición fuente del balón detectado
             detected_ball_dst_pos = None # Posición destino del balón detectado
 
-            if homog is not None:
+            if homog is not None: # Solo proceder si hay una homografía válida
                 # Obtener información de bounding boxes (x,y,w,h) de jugadores detectados (etiqueta 0)
                 bboxes_p_c_0 = bboxes_p_c[[i == 0 for i in labels_p], :]
                 # Obtener información de bounding boxes (x,y,w,h) del balón detectado (etiqueta 2)
@@ -156,14 +187,28 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
                         ball_track_history = homography.update_ball_tracking(ball_track_history, detected_ball_src_pos, detected_ball_dst_pos,
                                                                   ball_track_dist_thresh, max_track_length)
 
-            ### Predicción de Equipos de Jugadores ###
+            ### Asignación de Colores por ID de Jugador ###
 
-            # Extraer paletas de colores de jugadores
-            obj_palette_list = prediction.extract_player_palettes(frame, bboxes_p, labels_p, num_pal_colors)
-            # Calcular características de distancia para predicción de equipos
-            players_distance_features = prediction.calculate_distance_features(obj_palette_list, color_list_lab)
-            # Predecir equipos de jugadores
-            players_teams_list = prediction.predict_teams(players_distance_features, nbr_team_colors)
+            player_ids_current_frame = ids_p[[i == 0 for i in labels_p]]  # IDs de jugadores en el frame actual
+            players_teams_list = []
+
+            for player_id in player_ids_current_frame:
+                if player_id not in player_id_to_color_map:
+                    # Asignar un nuevo color si el ID del jugador es nuevo
+                    color_index = len(player_id_to_color_map) % len(player_colors_list)
+                    player_id_to_color_map[player_id] = player_colors_list[color_index]
+                
+                assigned_color_name = player_id_to_color_map[player_id]
+                players_teams_list.append(team_color_to_idx[assigned_color_name])
+
+            # Paletas vacías ya que no se usan
+            obj_palette_list = [[] for _ in labels_p]
+
+            # Paletas vacías ya que no se usan
+            obj_palette_list = [[] for _ in labels_p]
+
+            # Asignar player_ids para la función annotate_tactical_map
+            player_ids = player_ids_current_frame
 
             ### Frame Actualizado & Mapa Táctico Con Anotaciones ###
 
@@ -172,7 +217,7 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
                                            obj_palette_list, labels_dic, show_pal, show_p, show_k, bboxes_k)
 
             # Anotar el mapa táctico con posiciones de jugadores y balón
-            tac_map_copy = annotations.annotate_tactical_map(tac_map_copy, pred_dst_pts, detected_ball_dst_pos, players_teams_list, colors_dic)
+            tac_map_copy = annotations.annotate_tactical_map(tac_map_copy, pred_dst_pts, detected_ball_dst_pos, players_teams_list, colors_dic, player_ids)
             # Dibujar trayectoria del balón en el mapa táctico
             tac_map_copy = annotations.draw_ball_trajectory(tac_map_copy, ball_track_history)
 

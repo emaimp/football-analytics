@@ -1,4 +1,5 @@
-import base64
+import os
+import tempfile
 import streamlit as st
 
 # Titulo de la página
@@ -27,16 +28,13 @@ def render_local_video():
             with cols[col_idx]:
                 st.markdown(f'<p style="text-align: center;">{video_file.name}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="text-align: center;">Tamaño: {video_file.size/1024/1024:.1f} MB</p>', unsafe_allow_html=True)
-                video_bytes = video_file.getvalue()
-                video_b64 = base64.b64encode(video_bytes).decode()
+                # Guardar archivo temporalmente
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(video_file.name)[1]) as temp_file:
+                    temp_file.write(video_file.getvalue())
+                    temp_file_path = temp_file.name
 
-                # Fijar el ancho de los videos
-                fixed_width = 750 if i == 0 else 300
-                st.markdown(f'''
-                <video width="{fixed_width}" controls style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
-                    <source src="data:{video_file.type};base64,{video_b64}" type="{video_file.type}">
-                </video>
-                ''', unsafe_allow_html=True)
+                # Reproducir video
+                st.video(temp_file_path)
 
 # Ejecutar la página
 render_local_video()

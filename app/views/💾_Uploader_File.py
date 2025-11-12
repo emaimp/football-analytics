@@ -23,52 +23,26 @@ def video_uploader():
         st.subheader('Video de Entrada')
         st.video(video_bytes)
 
-        st.divider() # Divisor
-
-        # Nombres de equipos
-        st.subheader("Nombres de Equipos")
-        col1, col2 = st.columns(2)
-        with col1:
-            team1_name = st.text_input(label='Primer Equipo', value='')
-        with col2:
-            team2_name = st.text_input(label='Segundo Equipo', value='')
-
-        st.divider() # Divisor
-
-        return input_vide_file, tempf, video_bytes, team1_name, team2_name
+        return input_vide_file, tempf, video_bytes
 
     # Si ya hay un video cargado, mostrarlo
     elif 'video_bytes' in st.session_state:
         st.subheader('Video de Entrada (Cargado)')
         st.video(st.session_state.video_bytes)
 
-        st.divider() # Divisor
-
-        # Nombres de equipos (editables)
-        st.subheader("Nombres de Equipos")
-        col1, col2 = st.columns(2)
-        with col1:
-            team1_name = st.text_input(label='Primer Equipo', value=st.session_state.get('team1_name', ''))
-        with col2:
-            team2_name = st.text_input(label='Segundo Equipo', value=st.session_state.get('team2_name', ''))
-
-        st.divider() # Divisor
-
-        return st.session_state.input_vide_file, st.session_state.tempf, st.session_state.video_bytes, team1_name, team2_name
+        return st.session_state.input_vide_file, st.session_state.tempf, st.session_state.video_bytes
 
     # No hay video
     else:
-        return None, None, None, None, None
+        return None, None, None
 
 # Ejecutar la función de carga
-input_vide_file, tempf, video_bytes, team1_name, team2_name = video_uploader()
+input_vide_file, tempf, video_bytes = video_uploader()
 
 if input_vide_file:
     st.session_state.input_vide_file = input_vide_file
     st.session_state.tempf = tempf
     st.session_state.video_bytes = video_bytes
-    st.session_state.team1_name = team1_name
-    st.session_state.team2_name = team2_name
-    st.success("Video cargado correctamente. Ahora puedes configurar los colores y parámetros en sus respectivas pestañas.")
+    st.success("Video cargado correctamente. Ahora puedes configurar los nombres de equipos y colores en la pestaña de Colores.")
 else:
     st.info("Por favor, carga un video para continuar.")

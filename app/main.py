@@ -97,8 +97,8 @@ pages = {
         st.Page("views/📽️_Reproductor.py", title="Reproductor"),
     ],
     "Configuración": [
-        st.Page("views/🎨_Colores.py", title="Colores"),
-        st.Page("views/⚙️_Parámetros.py", title="Parámetros"),
+        st.Page("views/🎯_Tracking.py", title="Tracking"),
+        st.Page("views/⚙️_Parametros.py", title="Parámetros"),
     ],
 }
 
