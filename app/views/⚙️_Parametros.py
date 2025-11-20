@@ -38,16 +38,10 @@ def render_hyperparameters():
     st.subheader("Opciones de Salida")
     save_processed_separately = st.checkbox(label='Guardar video procesado por separado', value=True)
     save_tactical_separately = st.checkbox(label='Guardar mapa táctico por separado', value=True)
-    enable_resize = st.checkbox("Habilitar Redimensionamiento de Salida", value=False)
     if save_processed_separately or save_tactical_separately:
         output_file_name = st.text_input(label='Nombre del Archivo (Opcional)', placeholder='Ingrese el nombre del archivo de video de salida.')
     else:
         output_file_name = None
-    output_width = None
-    output_height = None
-    if enable_resize:
-        output_width = st.number_input("Ancho de Salida (px)", min_value=100, value=1280, step=100)
-        output_height = st.number_input("Alto de Salida (px)", min_value=100, value=720, step=100)
 
     st.markdown("---")
 
@@ -72,7 +66,7 @@ def render_hyperparameters():
             show_p = st.toggle(label="Mostrar Detecciones de Jugadores", value=True)
         with bcol22t:
             show_pal = st.toggle(label="Mostrar Paletas de Color", value=True)
-            show_b = st.toggle(label="Mostrar Seguimientos del Balón", value=True)
+            show_b = st.toggle(label="Mostrar Seguimientos del Balón", value=False)
         plot_hyperparams = {
             0: show_k,
             1: show_pal,
@@ -91,7 +85,7 @@ def render_hyperparameters():
             st.write('')
 
     return (detection_hyper_params, num_pal_colors, save_processed_separately, save_tactical_separately,
-            output_file_name, enable_resize, output_width, output_height, ball_track_hyperparams, plot_hyperparams,
+            output_file_name, ball_track_hyperparams, plot_hyperparams,
             start_detection, stop_detection)
 
 # Ejecutar la configuración de parámetros y detección
@@ -99,7 +93,7 @@ if "input_vide_file" not in st.session_state:
     st.error("Primero carga un video en la pestaña 'Carga de Video'.")
 else:
     (detection_hyper_params, num_pal_colors, save_processed_separately, save_tactical_separately,
-     output_file_name, enable_resize, output_width, output_height, ball_track_hyperparams, plot_hyperparams,
+     output_file_name, ball_track_hyperparams, plot_hyperparams,
      start_detection, stop_detection) = render_hyperparameters()
 
     import cv2
@@ -116,7 +110,7 @@ else:
         stframe = st.empty()
         detect(cap, stframe, output_file_name, save_processed_separately, save_tactical_separately, save_combined, model_players, model_keypoints,
                detection_hyper_params, ball_track_hyperparams, plot_hyperparams,
-               num_pal_colors, colors_dic, enable_resize, output_width, output_height)
+               num_pal_colors, colors_dic)
     else:
         try:
             cap.release()

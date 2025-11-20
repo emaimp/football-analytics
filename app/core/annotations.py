@@ -123,15 +123,12 @@ def draw_ball_trajectory(tac_map_copy, ball_track_history):
                                                color=(0, 0, 100), thickness=2)
     return tac_map_with_trajectory
 
-def combine_frames(annotated_frame, tac_map_copy, enable_resize, output_width, output_height):
+def combine_frames(annotated_frame, tac_map_copy):
     """
     Combina el frame anotado y el mapa táctico en la imagen final.
     Args:
         annotated_frame: Frame anotado
         tac_map_copy: Mapa táctico
-        enable_resize: Si redimensionar la imagen final
-        output_width: Ancho objetivo
-        output_height: Alto objetivo
     Returns:
         final_img: Imagen final combinada
     """
@@ -145,13 +142,6 @@ def combine_frames(annotated_frame, tac_map_copy, enable_resize, output_width, o
 
     ## Agregar anotación de información
     cv2.putText(final_img, "Mapa Táctico", (1370, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 2)
-
-    # Redimensionar final_img si está habilitado
-    if enable_resize and output_width and output_height:
-        scale = min(output_width / final_img.shape[1], output_height / final_img.shape[0])
-        new_width = int(final_img.shape[1] * scale)
-        new_height = int(final_img.shape[0] * scale)
-        final_img = cv2.resize(final_img, (new_width, new_height))
 
     return final_img
 

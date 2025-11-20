@@ -10,8 +10,7 @@ Función principal para detectar y procesar frames de video de fútbol.
 Realiza detección de objetos, transformación de coordenadas, predicción de equipos y anotaciones.
 """
 def detect(cap, stframe, output_file_name, save_processed_separately, save_tactical_separately, save_combined, model_players, model_keypoints,
-            hyper_params, ball_track_hyperparams, plot_hyperparams, num_pal_colors, colors_dic,
-            enable_resize, output_width, output_height):
+            hyper_params, ball_track_hyperparams, plot_hyperparams, num_pal_colors, colors_dic):
 
     # Extraer parámetros de visualización
     show_k = plot_hyperparams[0] # Mostrar keypoints
@@ -218,8 +217,10 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
 
             # Anotar el mapa táctico con posiciones de jugadores y balón
             tac_map_copy = annotations.annotate_tactical_map(tac_map_copy, pred_dst_pts, detected_ball_dst_pos, players_teams_list, colors_dic, player_ids)
-            # Dibujar trayectoria del balón en el mapa táctico
-            tac_map_copy = annotations.draw_ball_trajectory(tac_map_copy, ball_track_history)
+            
+            # Dibujar trayectoria del balón en el mapa táctico solo si está habilitado
+            if show_b:
+                tac_map_copy = annotations.draw_ball_trajectory(tac_map_copy, ball_track_history)
 
             # Guardar videos separados si está habilitado
             processed_output = output.write_processed_video(processed_output, annotated_frame, output_file_name, fps, save_processed_separately)
@@ -231,7 +232,7 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
             prev_frame_time = new_frame_time
 
             # Combinar frame anotado y mapa táctico
-            final_img = annotations.combine_frames(annotated_frame, tac_map_copy, enable_resize, output_width, output_height)
+            final_img = annotations.combine_frames(annotated_frame, tac_map_copy)
             # Agregar texto de FPS a la imagen final
             final_img = annotations.add_fps_text(final_img, fps)
 
