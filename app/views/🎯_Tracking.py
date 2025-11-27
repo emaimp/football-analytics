@@ -18,7 +18,7 @@ def render_team_colors(tempf, model_players, model_keypoints):
     frame = cap_temp.read()[1] # Leer frame (ignorar success)
     frame_original = frame.copy() # Copia para mostrar sin anotaciones
 
-    with st.spinner('Detectando jugadores...'):
+    with st.spinner('Detectando objetos...'):
         # Ejecutar modelo de tracking en el frame
         results = model_players.track(frame, conf=0.4, persist=True, tracker="botsort.yaml")
         # Extraer bounding boxes, etiquetas y IDs de detección
@@ -42,25 +42,49 @@ def render_team_colors(tempf, model_players, model_keypoints):
 
         # Bucle para procesar cada detección
         for i, j in enumerate(list(labels)):
-            if int(j) == 0: # Procesar solo clase 0 (jugadores)
+            if int(j) in [0, 1]: # Procesar clase 0 (jugadores) y 1 (árbitro)
                 bbox = bboxes[i,:] # Bounding box actual
                 x1, y1, x2, y2 = bbox.astype(int) # Coordenadas enteras
                 center = [(x1 + x2)/2, (y1 + y2)/2] # Centro del bbox
-                # Asignar color único basado en ID (cíclico)
-                player_color = player_colors_list[int(ids[i]) % len(player_colors_list)]
-                color_draw = color_dict[player_color] # Color BGR para dibujo
-                # Almacenar datos
-                player_centers.append(center)
-                player_colors.append(player_color)
-                player_ids.append(int(ids[i]))
-                # Dibujar rectángulo y texto en el frame
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color_draw, 2)
-                cv2.putText(frame, f"{int(ids[i])}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_draw, 2)
+                if int(j) == 0: # Jugador
+                    
+                    # Asignar color único basado en ID (cíclico)
+                    player_color = player_colors_list[int(ids[i]) % len(player_colors_list)]
+                    color_draw = color_dict[player_color] # Color BGR para dibujo
+                    
+                    # Almacenar datos
+                    player_centers.append(center)
+                    player_colors.append(player_color)
+                    player_ids.append(int(ids[i]))
+                    
+                    # Dibujar rectángulo y texto en el frame
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color_draw, 2)
+                    text = f"{int(ids[i])}"
+                    (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+                    cv2.rectangle(frame, (x1, y1 - text_height - baseline - 7), (x1 + text_width, y1 - 4), (50, 50, 50), -1)
+                    cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_draw, 1)
+                
+                # Árbitro
+                elif int(j) == 1:
+                    # Color del árbitro
+                    color_draw = (255, 255, 255)
+                    
+                    # Dibujar rectángulo y texto en el frame
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color_draw, 2)
+                    text = "Ref"
+                    (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+                    cv2.rectangle(frame, (x1, y1 - text_height - baseline - 7), (x1 + text_width, y1 - 4), (50, 50, 50), -1)
+                    cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_draw, 1)
 
         # Detectar keypoints del campo para transformación homográfica
         results_keypoints = model_keypoints(frame, conf=0.7)
         bboxes_keypoints = results_keypoints[0].boxes.xyxy.cpu().numpy() # Bboxes de keypoints
         labels_keypoints = results_keypoints[0].boxes.cls.cpu().numpy() # Clases de keypoints
+
+        # Dibujar keypoints detectados en el frame
+        for bbox in bboxes_keypoints:
+            x1, y1, x2, y2 = bbox.astype(int)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)  # Rojo para keypoints
         # Mapeo de clases a nombres de puntos del campo
         names = {0: 'TLC', 1: 'TRC', 2: 'TR6MC', 3: 'TL6MC', 4: 'TR6ML', 5: 'TL6ML', 6: 'TR18MC', 7: 'TL18MC', 8: 'TR18ML', 9: 'TL18ML', 10: 'TRArc', 11: 'TLArc', 12: 'RML', 13: 'RMC', 14: 'LMC', 15: 'LML', 16: 'BLC', 17: 'BRC', 18: 'BR6MC', 19: 'BL6MC', 20: 'BR6ML', 21: 'BL6ML', 22: 'BR18MC', 23: 'BL18MC', 24: 'BR18ML', 25: 'BL18ML', 26: 'BRArc', 27: 'BLArc'}
         detected_labels = [names[int(cls)] for cls in labels_keypoints] # Nombres detectados
@@ -104,7 +128,7 @@ def render_team_colors(tempf, model_players, model_keypoints):
         with col2:
             til1, til2, til3 = st.columns([25, 60, 15])
             with til2:
-                st.subheader("Detección - Jugadores") # Título
+                st.subheader("Detección - Objetos") # Título
             st.image(frame, channels="BGR", use_container_width=True) # Mostrar frame con rectángulos y IDs
 
     st.write("") # Espacio

@@ -5,10 +5,7 @@ import numpy as np
 import streamlit as st
 from core import annotations, config, homography, output, prediction
 
-"""
-Función principal para detectar y procesar frames de video de fútbol.
-Realiza detección de objetos, transformación de coordenadas, predicción de equipos y anotaciones.
-"""
+# Función principal para detectar y procesar frames de video de fútbol
 def detect(
     cap,
     stframe_game,
@@ -26,7 +23,7 @@ def detect(
 
     # Extraer parámetros de visualización
     show_k = plot_hyperparams[0] # Mostrar keypoints
-    show_pal = False  # Paletas removidas, siempre False
+    show_pal = False # Paletas removidas, siempre False
     show_b = plot_hyperparams[1] # Mostrar balón
     show_p = plot_hyperparams[2] # Mostrar jugadores
 
@@ -39,8 +36,6 @@ def detect(
     nbr_frames_no_ball_thresh = ball_track_hyperparams[0] # Umbral de frames sin balón
     ball_track_dist_thresh = ball_track_hyperparams[1] # Umbral de distancia para seguimiento
     max_track_length = ball_track_hyperparams[2] # Longitud máxima de seguimiento
-
-    # Número de colores (no usado ahora)
 
     # Generar nombre de archivo si es necesario
     if (save_processed_separately or save_tactical_separately or save_combined) and (output_file_name is None or len(str(output_file_name)) == 0):
@@ -65,7 +60,7 @@ def detect(
 
     # Obtener diccionarios de etiquetas y posiciones
     keypoints_map_pos, classes_names_dic, labels_dic = config.get_labels_dics()
-    labels_dic[1] = 'R.'  # Cambiar etiqueta del árbitro
+    labels_dic[1] = 'R'  # Cambiar etiqueta del árbitro
 
     # Variable para registrar el tiempo cuando procesamos el último frame
     prev_frame_time = 0
@@ -140,7 +135,7 @@ def detect(
                 ids_p = ids_p.cpu().numpy()
             else:
                 ids_p = np.arange(len(bboxes_p))  # Fallback IDs
-
+            
             # Bounding boxes de keypoints del campo detectados (x,y,x,y)
             bboxes_k = results_keypoints[0].boxes.xyxy.cpu().numpy()
             
@@ -149,16 +144,16 @@ def detect(
             
             # Lista de etiquetas de keypoints del campo detectados, convertidas a enteros
             labels_k = [int(label) for label in results_keypoints[0].boxes.cls.cpu().numpy()]
-
+            
             # Convertir etiquetas numéricas detectadas a etiquetas alfabéticas
             detected_labels = [classes_names_dic[i] for i in labels_k]
-
+            
             # Extraer coordenadas de keypoints del campo detectados en el frame actual
             detected_labels_src_pts = np.array([list(np.round(bboxes_k_c[i][:2]).astype(int)) for i in range(bboxes_k_c.shape[0])])
-
+            
             # Obtener las coordenadas de keypoints del campo detectados en el mapa táctico
             detected_labels_dst_pts = np.array([keypoints_map_pos[i] for i in detected_labels])
-
+            
             # Calcular matriz de transformación de homografía
             homog, update_homography, detected_labels_prev, detected_labels_src_pts_prev = homography.calculate_homography(
                 detected_labels,
@@ -232,10 +227,10 @@ def detect(
 
             # Paletas vacías ya que no se usan
             obj_palette_list = [[] for _ in labels_p]
-
+            
             # Paletas vacías ya que no se usan
             obj_palette_list = [[] for _ in labels_p]
-
+            
             # Asignar player_ids secuenciales para la función annotate_tactical_map
             player_ids = list(range(1, len(player_ids_current_frame) + 1))
 
@@ -304,9 +299,6 @@ def detect(
 
             stframe_game.image(final_img_game, channels="BGR")
             stframe_tactical.image(final_img_tactical, channels="BGR")
-            
-            # NOTA: La función combine_frames ya no se usa aquí.
-            # No se guarda video combinado aquí, solo se muestra en tiempo real.
 
     # Liberar escritores de video de salida y devolver nombres de archivos
     st_prog_bar.empty()
