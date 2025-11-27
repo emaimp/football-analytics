@@ -6,8 +6,6 @@ col_title1, col_title2, col_title3 = st.columns([34, 36, 30])
 with col_title2:
     st.header("💾 Carga de Video")
     st.write("") # Espacio
-    st.write("") # Espacio
-    st.write("") # Espacio
 
 # Cargar video y nombres de equipos
 def video_uploader():
@@ -20,15 +18,21 @@ def video_uploader():
         video_display = open(tempf.name, 'rb')
         video_bytes = video_display.read()
 
-        st.subheader('Video de Entrada')
-        st.video(video_bytes)
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            st.subheader('Video de Entrada')
+            st.video(video_bytes, width=850)
 
         return input_vide_file, tempf, video_bytes
 
     # Si ya hay un video cargado, mostrarlo
     elif 'video_bytes' in st.session_state:
-        st.subheader('Video de Entrada (Cargado)')
-        st.video(st.session_state.video_bytes)
+        video1, video2, video3 = st.columns([1, 3, 1])
+        with video2:
+            tex1, tex2, tex3 = st.columns([1, 3, 1])
+            with tex2:
+                st.subheader('Video de Entrada (Cargado)')
+            st.video(st.session_state.video_bytes, width=850)
 
         return st.session_state.input_vide_file, st.session_state.tempf, st.session_state.video_bytes
 

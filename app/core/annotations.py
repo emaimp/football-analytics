@@ -131,7 +131,8 @@ def annotate_tactical_map(
     detected_ball_dst_pos,
     players_teams_list,
     colors_dic,
-    player_ids=None
+    player_ids=None,
+    show_b=False
     ):
     """
     Anota el mapa táctico con posiciones de jugadores y balón.
@@ -154,27 +155,45 @@ def annotate_tactical_map(
             team_name = list(colors_dic.keys())[players_teams_list[j]]
             color_rgb = colors_dic[team_name][0]
             color_bgr = color_rgb[::-1]
+
+            # Dibujar círculo con borde blanco y relleno azul
+            center = (int(pt[0]), int(pt[1]))
+            radius = 10
+
+            # Borde blanco con antialiasing
             annotated_tactical_map = cv2.circle(
                 annotated_tactical_map,
-                (int(pt[0]),
-                int(pt[1])),
-                radius=10,
-                color=(0, 0, 255),
-                thickness=-1
-                )
+                center,
+                radius + 2,
+                (255, 255, 255),  # Blanco
+                thickness=2,
+                lineType=cv2.LINE_AA
+            )
+
+            # Relleno azul con antialiasing
+            annotated_tactical_map = cv2.circle(
+                annotated_tactical_map,
+                center,
+                radius,
+                (0, 0, 255),  # Azul
+                thickness=-1,
+                lineType=cv2.LINE_AA
+            )
+
             # Agregar ID del jugador si está disponible
             if player_ids is not None and j < len(player_ids):
                 annotated_tactical_map = cv2.putText(
                     annotated_tactical_map,
                     str(player_ids[j]),
-                    (int(pt[0]) + 10,
-                    int(pt[1]) - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                    (0, 0, 0), 2
-                    )
+                    (int(pt[0]) + 12,
+                    int(pt[1]) - 12),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.6,
+                    (0, 0, 0), 1,
+                    lineType=cv2.LINE_AA
+                )
 
-    # Anotar posición del balón
-    if detected_ball_dst_pos is not None:
+    # Anotar posición del balón solo si está habilitado
+    if detected_ball_dst_pos is not None and show_b:
         annotated_tactical_map = cv2.circle(
             annotated_tactical_map,
             (int(detected_ball_dst_pos[0]),

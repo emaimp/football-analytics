@@ -10,8 +10,6 @@ col_title1, col_title2, col_title3 = st.columns([40, 35, 25])
 with col_title2:
     st.header("🎯 Tracking")
     st.write("") # Espacio
-    st.write("") # Espacio
-    st.write("") # Espacio
 
 # Función principal: Detecta jugadores en el primer frame y muestra mapa táctico
 def render_team_colors(tempf, model_players, model_keypoints):
@@ -91,66 +89,73 @@ def render_team_colors(tempf, model_players, model_keypoints):
         if h_matrix is not None and player_centers:
             transformed_centers = homography.transform_points(h_matrix, player_centers)
 
-    st.write("Primer Fotograma.") # Subtítulo
+    # Contenedor para videos del juego
+    with st.container(border=True):
+        st.write("Primer Fotograma.") # Subtítulo
 
-    # Mostrar frames en dos columnas
-    col1, col2 = st.columns(2)
-    with col1:
-        til1, til2, til3 = st.columns([25, 50, 25])
-        with til2:
-            st.subheader("Imagen - Original") # Título
-        st.image(frame_original, channels="BGR", use_container_width=True) # Mostrar frame sin anotaciones
-
-    with col2:
-        til1, til2, til3 = st.columns([25, 60, 15])
-        with til2:
-            st.subheader("Detección - Jugadores") # Título
-        st.image(frame, channels="BGR", use_container_width=True) # Mostrar frame con rectángulos y IDs
-
-    st.write("") # Espacio
-    st.write("") # Espacio
-    st.write("Campo Táctico.") # Subtítulo
-
-    # Mostrar mapas tácticos en dos columnas
-    col_map1, col_map2 = st.columns(2)
-    with col_map1:
-        cen1, cen2, cen3 = st.columns([20, 70, 10])
-        with cen2:
-            til1, til2, til3 = st.columns([19, 50, 31])
+        # Mostrar frames en dos columnas
+        col1, col2 = st.columns(2)
+        with col1:
+            til1, til2, til3 = st.columns([25, 50, 25])
             with til2:
-                st.subheader("Coordenadas") # Título
-            with open('app/config/map_labels_position.json') as f:
-                positions = json.load(f) # Cargar posiciones de puntos del campo
-            img = plt.imread('app/assets/campo_tactico.png') # Cargar imagen del campo
-            fig, ax = plt.subplots()
-            fig.set_size_inches(6, 4)
-            fig.patch.set_facecolor('black')  # Fondo negro
-            ax.imshow(img) # Mostrar imagen de fondo
-            # Dibujar puntos de referencia del campo
-            for label, (x, y) in positions.items():
-                ax.plot(x, y, 'ro', markersize=3)
-                ax.text(x, y, label, fontsize=5, ha='center', va='bottom', color='white', fontweight='bold')
-            ax.axis('off')
-            st.pyplot(fig, width=400)
+                st.subheader("Imagen - Original") # Título
+            st.image(frame_original, channels="BGR", use_container_width=True) # Mostrar frame sin anotaciones
 
-    with col_map2:
-        cen1, cen2, cen3 = st.columns([20, 70, 10])
-        with cen2:
-            til1, til2, til3 = st.columns([3, 90, 7])
+        with col2:
+            til1, til2, til3 = st.columns([25, 60, 15])
             with til2:
                 st.subheader("Detección - Jugadores") # Título
-            img_clean = plt.imread('app/assets/campo_tactico.png') # Cargar imagen limpia del campo
-            fig, ax = plt.subplots()
-            fig.set_size_inches(6, 4)
-            fig.patch.set_facecolor('black')  # Fondo negro
-            ax.imshow(img_clean)
-            if transformed_centers is not None: # Si hay posiciones transformadas
-                # Dibujar puntos de jugadores con colores únicos
-                for i, (x, y) in enumerate(transformed_centers):
-                    ax.scatter(x, y, facecolors='green', edgecolors='red', s=64)
-                    ax.text(x, y, f"{player_ids[i]}", fontsize=8, ha='center', va='bottom', color='black', fontweight='bold')
-            ax.axis('off')
-            st.pyplot(fig, width=400)
+            st.image(frame, channels="BGR", use_container_width=True) # Mostrar frame con rectángulos y IDs
+
+    st.write("") # Espacio
+
+    # Contenedor para campos tácticos
+    with st.container(border=True):
+        st.write("Campo Táctico.") # Subtítulo
+
+        # Mostrar mapas tácticos en dos columnas
+        col_map1, col_map2 = st.columns(2)
+        with col_map1:
+            cen1, cen2, cen3 = st.columns([20, 70, 10])
+            with cen2:
+                til1, til2, til3 = st.columns([19, 50, 31])
+                with til2:
+                    st.subheader("Coordenadas") # Título
+                with open('app/config/map_labels_position.json') as f:
+                    positions = json.load(f) # Cargar posiciones de puntos del campo
+                img = plt.imread('app/assets/campo_tactico.png') # Cargar imagen del campo
+                fig, ax = plt.subplots()
+                fig.set_size_inches(6, 4)
+                fig.patch.set_facecolor('none')  # Fondo transparente
+                ax.imshow(img) # Mostrar imagen de fondo
+                
+                # Dibujar puntos de referencia del campo
+                for label, (x, y) in positions.items():
+                    ax.plot(x, y, 'ro', markersize=3)
+                    ax.text(x, y, label, fontsize=5, ha='center', va='bottom', color='white', fontweight='bold')
+                ax.axis('off')
+                st.pyplot(fig, width=400)
+
+        with col_map2:
+            cen1, cen2, cen3 = st.columns([20, 70, 10])
+            with cen2:
+                til1, til2, til3 = st.columns([3, 90, 7])
+                with til2:
+                    st.subheader("Detección - Jugadores") # Título
+                img_clean = plt.imread('app/assets/campo_tactico.png') # Cargar imagen limpia del campo
+                fig, ax = plt.subplots()
+                fig.set_size_inches(6, 4)
+                fig.patch.set_facecolor('none') # Fondo transparente
+                ax.imshow(img_clean)
+                
+                # Si hay posiciones transformadas
+                if transformed_centers is not None:
+                    # Dibujar puntos de jugadores con colores únicos
+                    for i, (x, y) in enumerate(transformed_centers):
+                        ax.scatter(x, y, facecolors='green', edgecolors='red', s=64)
+                        ax.text(x, y, f"{player_ids[i]}", fontsize=8, ha='center', va='bottom', color='black', fontweight='bold')
+                ax.axis('off')
+                st.pyplot(fig, width=400)
 
     # Retornar diccionario de colores fijo
     colors_dic = {"Jugadores": [(0, 0, 0), (0, 0, 0)]} # Azul para jugadores, negro para GK (no usado)

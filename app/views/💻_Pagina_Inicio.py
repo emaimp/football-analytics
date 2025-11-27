@@ -35,9 +35,8 @@ with col_inf2:
         }
         </style>
         <div class="text-box">
-        Esta aplicación permite identificar patrones de ventas,
-        medir las ganancias y desempeño de los productos,
-        asi como hacer proyecciones de rendimiento futuro 📉📈.
+        Esta aplicación permite el seguimiento de jugadores en el campo,
+        identificar patrones tácticos, y generar insights para optimizar estrategias de juego ⚽.
         </div>
         """,
         unsafe_allow_html=True

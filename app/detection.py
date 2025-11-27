@@ -263,7 +263,8 @@ def detect(
                 detected_ball_dst_pos,
                 players_teams_list,
                 colors_dic,
-                player_ids
+                player_ids,
+                show_b
                 )
             
             # Dibujar trayectoria del balón en el mapa táctico solo si está habilitado

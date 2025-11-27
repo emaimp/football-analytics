@@ -7,8 +7,6 @@ col_title1, col_title2, col_title3 = st.columns([34, 36, 30])
 with col_title2:
     st.header("📽️ Reproductor")
     st.write("") # Espacio
-    st.write("") # Espacio
-    st.write("") # Espacio
 
 # Cargar y reproducir videos locales
 def render_local_video():
@@ -18,7 +16,6 @@ def render_local_video():
         accept_multiple_files=True,
         help="Selecciona los videos a reproducir."
     )
-    st.divider()
 
     if uploaded_videos:
         # Mostrar videos en columnas (máximo 2 por fila)

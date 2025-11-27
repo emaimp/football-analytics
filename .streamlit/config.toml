@@ -4,10 +4,10 @@ maxMessageSize = 500
 
 [theme]
 # Primary color.
-primaryColor = "#3d9df3"
+primaryColor = "#cf1507"
 
 # Background color.
-backgroundColor = "#381c1c"
+backgroundColor = "#132e13"
 
 # Secondary background.
 secondaryBackgroundColor = "#000000"

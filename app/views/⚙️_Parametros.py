@@ -6,8 +6,6 @@ col_title1, col_title2, col_title3 = st.columns([40, 30, 30])
 with col_title2:
     st.header("⚙️ Parámetros")
     st.write("") # Espacio
-    st.write("") # Espacio
-    st.write("") # Espacio
 
 # Renderiza la pestaña de hiperparámetros
 def render_hyperparameters():
@@ -58,7 +56,7 @@ def render_hyperparameters():
             st.subheader("Opciones de Anotación")
             show_p = st.toggle(label="Mostrar Detecciones de Jugadores", value=True)
             show_k = st.toggle(label="Mostrar Detecciones de Puntos Clave", value=False)
-            show_b = st.toggle(label="Mostrar Seguimientos del Balón", value=False, disabled=True)
+            show_b = st.toggle(label="Mostrar Seguimientos del Balón", value=False)
             plot_hyperparams = {
                 0: show_k,
                 1: show_b,
@@ -68,14 +66,14 @@ def render_hyperparameters():
         # Opciones de salida de video
         with vis_col2:
             st.subheader("Opciones de Salida")
-            save_processed_separately = st.checkbox(label='Guardar video procesado', value=True)
+            save_processed_separately = st.checkbox(label='Guardar juego procesado', value=True)
             save_tactical_separately = st.checkbox(label='Guardar mapa táctico', value=True)
             if save_processed_separately or save_tactical_separately:
                 output_file_name = st.text_input(label='Nombre del Archivo (Opcional)', placeholder='Ingrese el nombre del archivo de salida.')
             else:
                 output_file_name = None
 
-    # Opciones del balón desactivadas temporalmente (valores fijos)
+    # Opciones del balón
     nbr_frames_no_ball_thresh = 30
     ball_track_dist_thresh = 100
     max_track_length = 35
