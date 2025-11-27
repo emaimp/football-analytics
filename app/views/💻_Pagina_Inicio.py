@@ -1,28 +1,44 @@
 import streamlit as st
 
-def render_how_to_use():
-    st.header(':blue[Bienvenido ⚽]')
-    st.write("") # Espacio
-    st.subheader('Funcionalidades de la Aplicación:')
-    st.markdown("""
-                1. Detección de jugadores, árbitro y balón.
-                2. Predicción del equipo.
-                3. Estimación de las posiciones de jugadores y balón en el campo.
-                """)
-    st.write("") # Espacio
-    st.subheader('Cómo usar:')
-    st.markdown("""
-                1. Ve a la página "Carga de Video" y sube un video para analizar.
-                2. Ingresa los nombres de los equipos en la carga de video.
-                3. Accede a la página "Configuración de Colores".
-                4. Selecciona un fotograma donde se puedan detectar jugadores y porteros.
-                5. Sigue las instrucciones en la página para seleccionar los colores de cada equipo.
-                6. Accede a la página "Configuración de Parámetros", ajusta las configuraciones (se recomiendan las predeterminadas).
-                7. Ejecuta la Detección.
-                8. Si se seleccionó la opción "guardar salidas", el video guardado se puede encontrar en el directorio "outputs"
-                """)
-    st.write("") # Espacio
-    st.caption("(Solo funciona con videos con vista táctica)")
+# Configuración de inicio
+st.set_page_config(
+    layout="wide",
+    initial_sidebar_state="expanded",
+    )
 
-# Ejecutar la página
-render_how_to_use()
+# Banner
+col_banner1, col_banner2, col_banner3 = st.columns([37, 33, 30])
+with col_banner2:
+    st.write("") # Espacio
+    st.write("") # Espacio
+    st.image("app/assets/logo.png", width=360)
+
+# Título de la empresa
+col_title1, col_title2, col_title3 = st.columns([34, 36, 30])
+with col_title2:
+    st.header("Electrodomésticos S.A")
+    st.write("") # Espacio
+    st.write("") # Espacio
+    st.write("") # Espacio
+
+# Columna del texto
+col_inf1, col_inf2, col_inf3 = st.columns([20, 60, 20])
+with col_inf2:
+    st.markdown(
+        """
+        <style>
+        .text-box {
+            border: 2px solid #ffffff !important;
+            padding: 10px;
+            background-color: rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        </style>
+        <div class="text-box">
+        Esta aplicación permite identificar patrones de ventas,
+        medir las ganancias y desempeño de los productos,
+        asi como hacer proyecciones de rendimiento futuro 📉📈.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )

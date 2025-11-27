@@ -1,12 +1,11 @@
 import streamlit as st
 from ultralytics import YOLO
 
-# Iniciar los roles
-if "role" not in st.session_state:
-    st.session_state.role = None
+# Inicia el estado de sesión del usuario
+if "user" not in st.session_state:
+    st.session_state.user = None
 
-ROLE = ["admin"]
-ROLE_PASSWORD = st.secrets["pass"]
+AUTH_CREDENTIALS = st.secrets["pass"]
 
 #
 # Hacer que el set_page_config no se ejecute
@@ -19,36 +18,30 @@ if "page_config" not in st.session_state:
     st.session_state.page_config = True
 
 #
-# Pagina login de roles
+# Pagina de login
 #
 def login():
     # Menu
     login_1, login_2, login_3 = st.columns(3)
     with login_2:
         st.write("")
-        st.write("")
-        st.write("")
-        st.write("")
         st.write("") # Espacio
         st.write("")
-        st.write("")
-        st.write("")
-        st.write("")
-        
-        # Título de la empresa
-        title_1, title_2, title_3 = st.columns([5, 91, 4])
-        with title_2:
-            st.write("") # Espacio
-            st.markdown('<h4 style="text-align:center; font-size: 2em;">⚽ Fútbol Computer Vision</h4>', unsafe_allow_html=True)
-            st.write("") # Espacio
         
         # Formulario para manejar el botón enviar
         with st.form(key="login_form"):
-            # Selección del rol
-            role = st.selectbox("Elige un usuario", ROLE)
             
+            # Logo de la empresa
+            logo_1, logo_2, logo_3 = st.columns([27, 60, 13])
+            with logo_2:
+                st.write("") # Espacio
+                st.image("app/assets/logo.png", width=250)
+                st.write("") # Espacio
+                st.write("") # Espacio
+            
+            # Entrada para el nombre de usuario
+            username = st.text_input("Ingresa tu usuario", max_chars=20)
             st.write("") # Espacio
-            
             # Entrada para la contraseña
             password = st.text_input(
                 "Ingresa la contraseña", type="password", max_chars=10
@@ -58,18 +51,21 @@ def login():
             # Botón de ingreso
             submit_button = st.form_submit_button("Entrar", type="primary", width="stretch")
             
-            # Verificar si la contraseña no esta vacía
-            if password != "":
+            # Verificar si el usuario y la contraseña no están vacíos
+            if username != "" and password != "":
                 # Verificamos si el botón fue presionado o el formulario se envió
                 if submit_button:
                     # Verificar la contraseña
-                    if password == ROLE_PASSWORD.get(role, None):
-                        st.session_state.role = role
-                        st.success(f"Acceso concedido.")
+                    if password == AUTH_CREDENTIALS.get(username, None):
+                        st.session_state.user = username # Asigna el nombre de usuario a la sesión
+                        st.success(f"Acceso concedido a {username}.")
                         st.rerun() # Reinicia la aplicación para reflejar el acceso
                     else:
-                        st.error("Contraseña incorrecta.")
+                        st.error("Usuario o contraseña incorrectos.")
+            elif submit_button:
+                st.error("Por favor, ingresa tu usuario y contraseña.")
         
+        # Badge de GitHub
         badge_1, badge_2, badge_3 = st.columns([40, 30, 30])
         with badge_2:
             """
@@ -80,9 +76,9 @@ def login():
 
 # Pagina de logout
 def logout():
-    st.session_state.role = None
+    st.session_state.user = None
     st.rerun()
-role = st.session_state.role
+user = st.session_state.user # Variable para el usuario logueado
 
 #
 # Paginas
@@ -90,7 +86,7 @@ role = st.session_state.role
 pages = {
     "Home": [
         st.Page(logout, title="Salir", icon=":material/logout:"),
-        st.Page("views/💻_Pagina_Inicio.py", title="Inicio", default=(role == "admin")),
+        st.Page("views/💻_Pagina_Inicio.py", title="Inicio", default=True),
     ],
     "Archivos": [
         st.Page("views/💾_Uploader_File.py", title="Carga de Video"),
@@ -103,7 +99,7 @@ pages = {
 }
 
 # Condicionales para la navegación
-if st.session_state.role == "admin":
+if st.session_state.user == "admin":
 
     # Cargar modelos si no están en session_state
     if "model_players" not in st.session_state:

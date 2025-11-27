@@ -34,20 +34,9 @@ def render_team_colors(tempf, model_players, model_keypoints):
             ids = np.arange(len(bboxes)) # IDs fallback si no hay tracking
 
         # Lista de colores disponibles para asignar a jugadores
-        player_colors_list = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'magenta', 'brown']
+        player_colors_list = ['green']
         # Diccionario para convertir nombres de colores a BGR (OpenCV)
-        color_dict = {
-            'red': (0, 0, 255),
-            'blue': (255, 0, 0),
-            'green': (0, 255, 0),
-            'yellow': (0, 255, 255),
-            'purple': (255, 0, 255),
-            'orange': (0, 165, 255),
-            'pink': (203, 192, 255),
-            'cyan': (255, 255, 0),
-            'magenta': (255, 0, 255),
-            'brown': (42, 42, 165)
-        }
+        color_dict = {'green': (0, 255, 0),}
         # Listas para almacenar datos de jugadores
         player_centers = [] # Centros de bounding boxes
         player_colors = [] # Colores asignados
@@ -158,7 +147,7 @@ def render_team_colors(tempf, model_players, model_keypoints):
             if transformed_centers is not None: # Si hay posiciones transformadas
                 # Dibujar puntos de jugadores con colores únicos
                 for i, (x, y) in enumerate(transformed_centers):
-                    ax.scatter(x, y, facecolors=player_colors[i], edgecolors=player_colors[i], s=64)
+                    ax.scatter(x, y, facecolors='green', edgecolors='red', s=64)
                     ax.text(x, y, f"{player_ids[i]}", fontsize=8, ha='center', va='bottom', color='black', fontweight='bold')
             ax.axis('off')
             st.pyplot(fig, width=400)

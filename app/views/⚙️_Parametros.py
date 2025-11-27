@@ -1,7 +1,8 @@
+import cv2
 import streamlit as st
 
 # Titulo de la página
-col_title1, col_title2, col_title3 = st.columns([34, 36, 30])
+col_title1, col_title2, col_title3 = st.columns([40, 30, 30])
 with col_title2:
     st.header("⚙️ Parámetros")
     st.write("") # Espacio
@@ -10,107 +11,156 @@ with col_title2:
 
 # Renderiza la pestaña de hiperparámetros
 def render_hyperparameters():
-    t2col1, t2col2 = st.columns([1,1])
-    with t2col1:
-        player_model_conf_thresh = st.slider('Umbral de Confianza de Detección de Jugadores', min_value=0.0, max_value=1.0, value=0.4)
+    # Expander para agrupar las configuraciones de detección
+    with st.expander("Configuraciones de Detección", expanded=True):
+        # Umbral de confianza para detección de jugadores
+        player_model_conf_thresh = st.slider(
+            'Umbral de Confianza de Detección de Jugadores',
+            min_value=0.0,
+            max_value=1.0,
+            value=0.4
+            )
+        
+        # Inicializar diccionario de parámetros de detección
         detection_hyper_params = {
             0: player_model_conf_thresh,
             1: None,  # Will be set below
             2: None   # Will be set below
         }
-    with t2col2:
-        num_pal_colors = st.slider(label="Número de colores de paleta", min_value=1, max_value=5, step=1, value=3,
-                                help="¿Cuántos colores extraer de las cajas delimitadoras de los jugadores detectados? Se utiliza para la predicción del equipo.")
 
-    # Opciones de puntos clave del campo (debajo de las columnas principales)
-    kp_col1, kp_col2 = st.columns([1,1])
-    with kp_col1:
-        keypoints_model_conf_thresh = st.slider('Umbral de Confianza de Detección de Puntos Clave del Campo', min_value=0.0, max_value=1.0, value=0.7)
-    with kp_col2:
-        keypoints_displacement_mean_tol = st.slider('Tolerancia RMSE de Desplazamiento de Puntos Clave (píxeles)', min_value=-1, max_value=100, value=7,
-                                                     help="Indica la distancia promedio máxima permitida entre la posición de los puntos clave del campo en las detecciones actuales y anteriores. Se utiliza para determinar si actualizar la matriz de homografía o no.")
+        # Umbral de confianza para detección de puntos clave del campo
+        keypoints_model_conf_thresh = st.slider(
+            'Umbral de Confianza de Detección de Puntos Clave del Campo',
+            min_value=0.0,
+            max_value=1.0,
+            value=0.7
+            )
 
-    # Actualizar el diccionario con los valores correctos
-    detection_hyper_params[1] = keypoints_model_conf_thresh
-    detection_hyper_params[2] = keypoints_displacement_mean_tol
+        # Tolerancia de desplazamiento para puntos clave (usada para actualizar homografía)
+        keypoints_displacement_mean_tol = st.slider(
+            'Tolerancia RMSE de Desplazamiento de Puntos Clave (píxeles)',
+            min_value=-1,
+            max_value=100,
+            value=7,
+            help="Indica la distancia promedio máxima permitida entre la posición de los puntos clave del campo en las detecciones actuales y anteriores."
+            )
 
-    st.markdown("---")
-    st.subheader("Opciones de Salida")
-    save_processed_separately = st.checkbox(label='Guardar video procesado por separado', value=True)
-    save_tactical_separately = st.checkbox(label='Guardar mapa táctico por separado', value=True)
-    if save_processed_separately or save_tactical_separately:
-        output_file_name = st.text_input(label='Nombre del Archivo (Opcional)', placeholder='Ingrese el nombre del archivo de video de salida.')
-    else:
-        output_file_name = None
+        # Actualizar el diccionario con los valores correctos
+        detection_hyper_params[1] = keypoints_model_conf_thresh
+        detection_hyper_params[2] = keypoints_displacement_mean_tol
 
-    st.markdown("---")
-
-    bcol1, bcol2 = st.columns([1,1])
-    with bcol1:
-        nbr_frames_no_ball_thresh = st.number_input("Umbral de reinicio del seguimiento del balón (fotogramas)", min_value=1, max_value=10000,
-                                                 value=30, help="¿Después de cuántos fotogramas sin detección de balón, se debe reiniciar el seguimiento?")
-        ball_track_dist_thresh = st.number_input("Umbral de distancia del seguimiento del balón (píxeles)", min_value=1, max_value=1280,
-                                                    value=100, help="Distancia máxima permitida entre dos detecciones consecutivas de balón para mantener el seguimiento actual.")
-        max_track_length = st.number_input("Longitud máxima del seguimiento del balón (Núm. detecciones)", min_value=1, max_value=1000,
-                                                    value=35, help="Número máximo total de detecciones de balón para mantener en el historial de seguimiento")
-        ball_track_hyperparams = {
-            0: nbr_frames_no_ball_thresh,
-            1: ball_track_dist_thresh,
-            2: max_track_length
-        }
-    with bcol2:
-        st.write("Opciones de anotación:")
-        bcol21t, bcol22t = st.columns([1,1])
-        with bcol21t:
-            show_k = st.toggle(label="Mostrar Detecciones de Puntos Clave", value=False)
+    # Expander para opciones de visualización
+    with st.expander("Opciones de Visualización", expanded=True):
+        vis_col1, vis_col2 = st.columns([1,1])
+        
+        # Opciones de anotación
+        with vis_col1:
+            st.subheader("Opciones de Anotación")
             show_p = st.toggle(label="Mostrar Detecciones de Jugadores", value=True)
-        with bcol22t:
-            show_pal = st.toggle(label="Mostrar Paletas de Color", value=True)
-            show_b = st.toggle(label="Mostrar Seguimientos del Balón", value=False)
-        plot_hyperparams = {
-            0: show_k,
-            1: show_pal,
-            2: show_b,
-            3: show_p
-        }
-        st.markdown('---')
-        bcol21, bcol22, bcol23, bcol24 = st.columns([1.5,1,1,1])
-        with bcol21:
-            st.write('')
-        with bcol22:
-            start_detection = st.button(label='Iniciar Detección')
-        with bcol23:
-            stop_detection = st.button(label='Detener Detección')
-        with bcol24:
-            st.write('')
+            show_k = st.toggle(label="Mostrar Detecciones de Puntos Clave", value=False)
+            show_b = st.toggle(label="Mostrar Seguimientos del Balón", value=False, disabled=True)
+            plot_hyperparams = {
+                0: show_k,
+                1: show_b,
+                2: show_p
+            }
+        
+        # Opciones de salida de video
+        with vis_col2:
+            st.subheader("Opciones de Salida")
+            save_processed_separately = st.checkbox(label='Guardar video procesado', value=True)
+            save_tactical_separately = st.checkbox(label='Guardar mapa táctico', value=True)
+            if save_processed_separately or save_tactical_separately:
+                output_file_name = st.text_input(label='Nombre del Archivo (Opcional)', placeholder='Ingrese el nombre del archivo de salida.')
+            else:
+                output_file_name = None
 
-    return (detection_hyper_params, num_pal_colors, save_processed_separately, save_tactical_separately,
-            output_file_name, ball_track_hyperparams, plot_hyperparams,
-            start_detection, stop_detection)
+    # Opciones del balón desactivadas temporalmente (valores fijos)
+    nbr_frames_no_ball_thresh = 30
+    ball_track_dist_thresh = 100
+    max_track_length = 35
+    ball_track_hyperparams = {
+        0: nbr_frames_no_ball_thresh,
+        1: ball_track_dist_thresh,
+        2: max_track_length
+    }
+
+    # CSS para quitar redondeo de contenedores e imágenes
+    st.markdown("""<style> .stContainer { border-radius: 0 !important; } img { border-radius: 0 !important; } </style>""", unsafe_allow_html=True)
+
+    # Contenedor para los botones de detección (full width con borde)
+    with st.container(border=True):
+        btn_col1, btn_col2, btn_col3 = st.columns([25, 37, 38])
+        with btn_col2:
+            start_detection = st.button(label='Iniciar Detección')
+        with btn_col3:
+            stop_detection = st.button(label='Detener Detección')
+
+    return (
+        detection_hyper_params,
+        save_processed_separately,
+        save_tactical_separately,
+        output_file_name,
+        ball_track_hyperparams,
+        plot_hyperparams,
+        start_detection,
+        stop_detection
+        )
 
 # Ejecutar la configuración de parámetros y detección
 if "input_vide_file" not in st.session_state:
     st.error("Primero carga un video en la pestaña 'Carga de Video'.")
 else:
-    (detection_hyper_params, num_pal_colors, save_processed_separately, save_tactical_separately,
-     output_file_name, ball_track_hyperparams, plot_hyperparams,
-     start_detection, stop_detection) = render_hyperparameters()
+    (
+        detection_hyper_params,
+        save_processed_separately,
+        save_tactical_separately,
+        output_file_name,
+        ball_track_hyperparams,
+        plot_hyperparams,
+        start_detection,
+        stop_detection
+    ) = render_hyperparameters()
 
-    import cv2
     tempf = st.session_state.tempf
     cap = cv2.VideoCapture(tempf.name)
 
     if start_detection and not stop_detection:
         from detection import detect
         st.toast(f'¡Detección Iniciada!')
-        save_combined = False  # No longer an option, always False
+        save_combined = False # No longer an option, always False
         model_players = st.session_state.model_players
         model_keypoints = st.session_state.model_keypoints
-        colors_dic = {}  # Will be set in detection
-        stframe = st.empty()
-        detect(cap, stframe, output_file_name, save_processed_separately, save_tactical_separately, save_combined, model_players, model_keypoints,
-               detection_hyper_params, ball_track_hyperparams, plot_hyperparams,
-               num_pal_colors, colors_dic)
+        colors_dic = {} # Will be set in detection
+        
+        # Crear placeholders para los videos separados con espacio
+        col_space, col_game, col_tactical = st.columns([15, 50, 35])
+        
+        # Procesado del juego
+        with col_game:
+            st.subheader("Video del Juego")
+            stframe_game = st.empty()
+        
+        # Procesado del mapa táctico
+        with col_tactical:
+            st.subheader("Mapa Táctico")
+            stframe_tactical = st.empty()
+        
+        detect(
+            cap,
+            stframe_game,
+            stframe_tactical,
+            output_file_name,
+            save_processed_separately,
+            save_tactical_separately,
+            save_combined,
+            model_players,
+            model_keypoints,
+            detection_hyper_params,
+            ball_track_hyperparams,
+            plot_hyperparams,
+            colors_dic
+            )
     else:
         try:
             cap.release()

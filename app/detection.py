@@ -9,14 +9,26 @@ from core import annotations, config, homography, output, prediction
 Función principal para detectar y procesar frames de video de fútbol.
 Realiza detección de objetos, transformación de coordenadas, predicción de equipos y anotaciones.
 """
-def detect(cap, stframe, output_file_name, save_processed_separately, save_tactical_separately, save_combined, model_players, model_keypoints,
-            hyper_params, ball_track_hyperparams, plot_hyperparams, num_pal_colors, colors_dic):
+def detect(
+    cap,
+    stframe_game,
+    stframe_tactical,
+    output_file_name,
+    save_processed_separately,
+    save_tactical_separately,
+    save_combined, model_players,
+    model_keypoints,
+    hyper_params,
+    ball_track_hyperparams,
+    plot_hyperparams,
+    colors_dic
+    ):
 
     # Extraer parámetros de visualización
     show_k = plot_hyperparams[0] # Mostrar keypoints
-    show_pal = plot_hyperparams[1] # Mostrar paletas
-    show_b = plot_hyperparams[2] # Mostrar balón
-    show_p = plot_hyperparams[3] # Mostrar jugadores
+    show_pal = False  # Paletas removidas, siempre False
+    show_b = plot_hyperparams[1] # Mostrar balón
+    show_p = plot_hyperparams[2] # Mostrar jugadores
 
     # Extraer parámetros de hiperparámetros
     p_conf = hyper_params[0] # Confianza para detección de jugadores
@@ -53,6 +65,7 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
 
     # Obtener diccionarios de etiquetas y posiciones
     keypoints_map_pos, classes_names_dic, labels_dic = config.get_labels_dics()
+    labels_dic[1] = 'R.'  # Cambiar etiqueta del árbitro
 
     # Variable para registrar el tiempo cuando procesamos el último frame
     prev_frame_time = 0
@@ -60,26 +73,16 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
     new_frame_time = 0
 
     # Almacenar el historial de seguimiento del balón
-    ball_track_history = {'src': [], # Posiciones fuente del balón
-                          'dst': [] # Posiciones destino del balón
+    ball_track_history = {
+        'src': [], # Posiciones fuente del balón
+        'dst': [] # Posiciones destino del balón
     }
     nbr_frames_no_ball = 0 # Contador de frames sin balón
 
     # Inicializar mapeo de ID de jugador a color y diccionario de colores
     player_id_to_color_map = {}
-    player_colors_list = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'magenta', 'brown']
-    color_rgb_map = {
-        'red': (0, 0, 255),
-        'blue': (255, 0, 0),
-        'green': (0, 255, 0),
-        'yellow': (0, 255, 255),
-        'purple': (255, 0, 255),
-        'orange': (0, 165, 255),
-        'pink': (203, 192, 255),
-        'cyan': (255, 255, 0),
-        'magenta': (255, 0, 255),
-        'brown': (42, 42, 165)
-    }
+    player_colors_list = ['green']
+    color_rgb_map = {'green': (0, 255, 0),}
     # Inicializar colors_dic con los colores base para los equipos
     # Esto asegura que colors_dic tenga una estructura consistente
     colors_dic = {f"{i}": [color_rgb_map[player_colors_list[i]]] for i in range(len(player_colors_list))}
@@ -116,20 +119,36 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
             # Ejecutar inferencia de YOLOv8 para keypoints del campo en el frame
             results_keypoints = model_keypoints(frame, conf=k_conf)
 
-            # Extraer información de detecciones
-            bboxes_p = results_players[0].boxes.xyxy.cpu().numpy() # Bounding boxes de jugadores, árbitros y balón detectados (x,y,x,y)
-            bboxes_p_c = results_players[0].boxes.xywh.cpu().numpy() # Bounding boxes de jugadores, árbitros y balón detectados (x,y,w,h)
-            labels_p = [int(label) for label in results_players[0].boxes.cls.cpu().numpy()] # Lista de etiquetas de jugadores, árbitros y balón detectados, convertidas a enteros
-            confs_p = list(results_players[0].boxes.conf.cpu().numpy()) # Nivel de confianza de jugadores, árbitros y balón detectados
-            ids_p = results_players[0].boxes.id # IDs de tracking
+            ## Extraer información de detecciones ##
+
+            # Bounding boxes de jugadores, árbitros y balón detectados (x,y,x,y)
+            bboxes_p = results_players[0].boxes.xyxy.cpu().numpy()
+            
+            # Bounding boxes de jugadores, árbitros y balón detectados (x,y,w,h)
+            bboxes_p_c = results_players[0].boxes.xywh.cpu().numpy()
+            
+            # Lista de etiquetas de jugadores, árbitros y balón detectados, convertidas a enteros
+            labels_p = [int(label) for label in results_players[0].boxes.cls.cpu().numpy()]
+            
+            # Nivel de confianza de jugadores, árbitros y balón detectados
+            confs_p = list(results_players[0].boxes.conf.cpu().numpy())
+            
+            # IDs de tracking
+            ids_p = results_players[0].boxes.id
+            
             if ids_p is not None:
                 ids_p = ids_p.cpu().numpy()
             else:
                 ids_p = np.arange(len(bboxes_p))  # Fallback IDs
 
-            bboxes_k = results_keypoints[0].boxes.xyxy.cpu().numpy() # Bounding boxes de keypoints del campo detectados (x,y,x,y)
-            bboxes_k_c = results_keypoints[0].boxes.xywh.cpu().numpy() # Bounding boxes de keypoints del campo detectados (x,y,w,h)
-            labels_k = [int(label) for label in results_keypoints[0].boxes.cls.cpu().numpy()] # Lista de etiquetas de keypoints del campo detectados, convertidas a enteros
+            # Bounding boxes de keypoints del campo detectados (x,y,x,y)
+            bboxes_k = results_keypoints[0].boxes.xyxy.cpu().numpy()
+            
+            # Bounding boxes de keypoints del campo detectados (x,y,w,h)
+            bboxes_k_c = results_keypoints[0].boxes.xywh.cpu().numpy()
+            
+            # Lista de etiquetas de keypoints del campo detectados, convertidas a enteros
+            labels_k = [int(label) for label in results_keypoints[0].boxes.cls.cpu().numpy()]
 
             # Convertir etiquetas numéricas detectadas a etiquetas alfabéticas
             detected_labels = [classes_names_dic[i] for i in labels_k]
@@ -142,9 +161,14 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
 
             # Calcular matriz de transformación de homografía
             homog, update_homography, detected_labels_prev, detected_labels_src_pts_prev = homography.calculate_homography(
-                detected_labels, detected_labels_src_pts, detected_labels_dst_pts,
-                detected_labels_prev, detected_labels_src_pts_prev, k_d_tol, frame_nbr
-            )
+                detected_labels,
+                detected_labels_src_pts,
+                detected_labels_dst_pts,
+                detected_labels_prev,
+                detected_labels_src_pts_prev,
+                k_d_tol,
+                frame_nbr
+                )
 
             # Persistir la última homografía válida
             if homog is not None:
@@ -183,12 +207,18 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
 
                     # Actualizar seguimiento del balón
                     if show_b:
-                        ball_track_history = homography.update_ball_tracking(ball_track_history, detected_ball_src_pos, detected_ball_dst_pos,
-                                                                  ball_track_dist_thresh, max_track_length)
+                        ball_track_history = homography.update_ball_tracking(
+                            ball_track_history,
+                            detected_ball_src_pos,
+                            detected_ball_dst_pos,
+                            ball_track_dist_thresh,
+                            max_track_length
+                            )
 
             ### Asignación de Colores por ID de Jugador ###
 
-            player_ids_current_frame = ids_p[[i == 0 for i in labels_p]]  # IDs de jugadores en el frame actual
+            # IDs de jugadores en el frame actual
+            player_ids_current_frame = ids_p[[i == 0 for i in labels_p]]
             players_teams_list = []
 
             for player_id in player_ids_current_frame:
@@ -206,47 +236,86 @@ def detect(cap, stframe, output_file_name, save_processed_separately, save_tacti
             # Paletas vacías ya que no se usan
             obj_palette_list = [[] for _ in labels_p]
 
-            # Asignar player_ids para la función annotate_tactical_map
-            player_ids = player_ids_current_frame
+            # Asignar player_ids secuenciales para la función annotate_tactical_map
+            player_ids = list(range(1, len(player_ids_current_frame) + 1))
 
             ### Frame Actualizado & Mapa Táctico Con Anotaciones ###
 
             # Anotar el frame con detecciones
-            annotated_frame = annotations.annotate_frame(frame, bboxes_p, labels_p, confs_p, players_teams_list, colors_dic,
-                                           obj_palette_list, labels_dic, show_pal, show_p, show_k, bboxes_k)
+            annotated_frame = annotations.annotate_frame(
+                frame, bboxes_p, labels_p,
+                confs_p, players_teams_list,
+                colors_dic,
+                obj_palette_list,
+                labels_dic,
+                show_pal,
+                show_p,
+                show_k,
+                bboxes_k,
+                player_ids,
+                show_b
+                )
 
             # Anotar el mapa táctico con posiciones de jugadores y balón
-            tac_map_copy = annotations.annotate_tactical_map(tac_map_copy, pred_dst_pts, detected_ball_dst_pos, players_teams_list, colors_dic, player_ids)
+            tac_map_copy = annotations.annotate_tactical_map(
+                tac_map_copy,
+                pred_dst_pts,
+                detected_ball_dst_pos,
+                players_teams_list,
+                colors_dic,
+                player_ids
+                )
             
             # Dibujar trayectoria del balón en el mapa táctico solo si está habilitado
             if show_b:
-                tac_map_copy = annotations.draw_ball_trajectory(tac_map_copy, ball_track_history)
+                tac_map_copy = annotations.draw_ball_trajectory(
+                    tac_map_copy,
+                    ball_track_history
+                    )
 
             # Guardar videos separados si está habilitado
-            processed_output = output.write_processed_video(processed_output, annotated_frame, output_file_name, fps, save_processed_separately)
-            tactical_output = output.write_tactical_video(tactical_output, tac_map_copy, output_file_name, fps, save_tactical_separately)
+            processed_output = output.write_processed_video(
+                processed_output,
+                annotated_frame,
+                output_file_name,
+                fps,
+                save_processed_separately
+                )
+            tactical_output = output.write_tactical_video(
+                tactical_output,
+                tac_map_copy,
+                output_file_name,
+                fps,
+                save_tactical_separately
+                )
 
             # Calcular FPS actual
             new_frame_time = time.time()
             fps = 1 / (new_frame_time - prev_frame_time)
             prev_frame_time = new_frame_time
 
-            # Combinar frame anotado y mapa táctico
-            final_img = annotations.combine_frames(annotated_frame, tac_map_copy)
-            # Agregar texto de FPS a la imagen final
-            final_img = annotations.add_fps_text(final_img, fps)
+            # Mostrar el frame anotado y el mapa táctico en Streamlit
+            final_img_game = cv2.copyMakeBorder(annotated_frame, 3, 3, 3, 3, cv2.BORDER_CONSTANT, value=(0, 0, 255)) # Borde rojo
 
-            # Guardar video combinado si está habilitado
-            combined_output = output.write_combined_video(combined_output, final_img, output_file_name, fps, save_combined)
+            # Reducir tamaño del mapa táctico
+            tac_map_resized = cv2.resize(tac_map_copy, (int(tac_map_copy.shape[1] * 0.555), int(tac_map_copy.shape[0] * 0.555)))
+            final_img_tactical = tac_map_resized # Sin texto "Mapa Tactico"
 
-            # Mostrar el frame anotado en Streamlit
-            stframe.image(final_img, channels="BGR")
-            # cv2.imshow("YOLOv8 Inference", frame) # Opción alternativa para mostrar con OpenCV
+            stframe_game.image(final_img_game, channels="BGR")
+            stframe_tactical.image(final_img_tactical, channels="BGR")
+            
+            # NOTA: La función combine_frames ya no se usa aquí.
+            # No se guarda video combinado aquí, solo se muestra en tiempo real.
 
     # Liberar escritores de video de salida y devolver nombres de archivos
     st_prog_bar.empty()
-    processed_name, tactical_name, combined_name = output.release_video_writers(
-        processed_output, tactical_output, combined_output,
-        save_processed_separately, save_tactical_separately, save_combined, output_file_name
-    )
-    return True, processed_name, tactical_name, combined_name
+    processed_name, tactical_name, _ = output.release_video_writers(
+        processed_output,
+        tactical_output,
+        None, # No hay combined_output
+        save_processed_separately,
+        save_tactical_separately,
+        False,
+        output_file_name
+        )
+    return True, processed_name, tactical_name, None # No hay combined_name
