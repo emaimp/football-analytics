@@ -1,4 +1,4 @@
-# control-de-ventas
+# football-analytics
 - __Lógica__: Python
 - __Interfaz__: Streamlit
 ## Configuración
